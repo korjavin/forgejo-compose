@@ -1,0 +1,56 @@
+version: "3.8"
+
+services:
+  forgejo:
+    image: ${FORGEJO_IMAGE:-codeberg.org/forgejo/forgejo:14}
+    container_name: ${FORGEJO_CONTAINER_NAME:-forgejo}
+    restart: unless-stopped
+    environment:
+      - USER_UID=${USER_UID:-1000}
+      - USER_GID=${USER_GID:-1000}
+      - FORGEJO__server__DOMAIN=${FORGEJO_HOST}
+      - FORGEJO__server__ROOT_URL=https://${FORGEJO_HOST}
+      - FORGEJO__server__HTTP_PORT=3000
+      - FORGEJO__server__SSH_DOMAIN=${FORGEJO_HOST}
+      - FORGEJO__server__SSH_PORT=${SSH_EXPOSE_PORT:-22}
+      - FORGEJO__server__START_SSH_SERVER=true
+      - FORGEJO__database__DB_TYPE=${DB_TYPE:-sqlite3}
+      - FORGEJO__database__PATH=/data/forgejo/gitea.db
+      - FORGEJO__security__SECRET_KEY=${SECRET_KEY}
+      - FORGEJO__security__INTERNAL_TOKEN=${INTERNAL_TOKEN}
+      - FORGEJO__service__DISABLE_REGISTRATION=${DISABLE_REGISTRATION:-true}
+      - FORGEJO__service__REQUIRE_SIGNIN_VIEW=${REQUIRE_SIGNIN_VIEW:-true}
+      - FORGEJO__mailer__ENABLED=${MAILER_ENABLED:-false}
+    volumes:
+      - forgejo-data:/data
+      - /etc/timezone:/etc/timezone:ro
+      - /etc/localtime:/etc/localtime:ro
+    networks:
+      - traefik_network
+    ports:
+      - "${SSH_EXPOSE_PORT:-22}:22"
+    labels:
+      # --- Enable Traefik ---
+      - "traefik.enable=true"
+      - "traefik.docker.network=${TRAEFIK_NETWORK_NAME:-traefik_default}"
+
+      # --- Router Configuration ---
+      - "traefik.http.routers.forgejo.rule=Host(`${FORGEJO_HOST}`)"
+      - "traefik.http.routers.forgejo.entrypoints=websecure"
+      - "traefik.http.routers.forgejo.tls.certresolver=${TRAEFIK_CERTRESOLVER:-myresolver}"
+
+      # --- Service Configuration (Forgejo HTTP port) ---
+      - "traefik.http.services.forgejo.loadbalancer.server.port=3000"
+
+      # --- OAuth2 Protection ---
+      # These middlewares must already be defined (e.g. by oauth2-proxy on the same Docker network)
+      - "traefik.http.routers.forgejo.middlewares=auth-errors@docker,forward-auth@docker"
+
+networks:
+  traefik_network:
+    external: true
+    name: ${TRAEFIK_NETWORK_NAME:-traefik_default}
+
+volumes:
+  forgejo-data:
+    name: ${FORGEJO_VOLUME_NAME:-forgejo_data}
