@@ -22,7 +22,7 @@ services:
       - FORGEJO__service__REQUIRE_SIGNIN_VIEW=${REQUIRE_SIGNIN_VIEW:-true}
       - FORGEJO__mailer__ENABLED=${MAILER_ENABLED:-false}
     volumes:
-      - forgejo-data:/data
+      - ${DATA_PATH:-./data}:/data
       - /etc/timezone:/etc/timezone:ro
       - /etc/localtime:/etc/localtime:ro
     networks:
@@ -50,7 +50,3 @@ networks:
   traefik_network:
     external: true
     name: ${TRAEFIK_NETWORK_NAME:-traefik_default}
-
-volumes:
-  forgejo-data:
-    name: ${FORGEJO_VOLUME_NAME:-forgejo_data}
