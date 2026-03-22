@@ -43,9 +43,9 @@ services:
       # --- Service Configuration (Forgejo HTTP port) ---
       - "traefik.http.services.forgejo.loadbalancer.server.port=3000"
 
-      # --- OAuth2 Protection ---
-      # These middlewares must already be defined (e.g. by oauth2-proxy on the same Docker network)
-      - "traefik.http.routers.forgejo.middlewares=auth-errors@docker,forward-auth@docker"
+      # --- OAuth2 Protection (optional) ---
+      # Only applied when OAUTH_PROXY=true; leave unset to skip forward-auth middleware
+      - "traefik.http.routers.forgejo.middlewares=${FORGEJO_MIDDLEWARES:-}"
 
 networks:
   traefik_network:
